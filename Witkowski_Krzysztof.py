@@ -4,6 +4,7 @@ from pathlib import Path
 
 import cv2 as cv
 
+from processing.utils import LicensePlateDetector
 
 def main():
     parser = argparse.ArgumentParser()
@@ -21,10 +22,9 @@ def main():
         if image is None:
             print(f'Error loading image {image_path}')
             continue
-
-        cv.imshow('image', image)
-        cv.waitKey(0)
-        results[image_path.name] = 'test_123'
+    
+        lp_detector = LicensePlateDetector(image)
+        results[image_path.name] = lp_detector.detect_license_plate()
 
     with results_file.open('w') as output_file:
         json.dump(results, output_file, indent=4)
