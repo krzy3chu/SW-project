@@ -13,6 +13,8 @@ class OCR:
         self.chars_imgs = []
         self.gap_idx = 0
         self.characters = []
+        self.img_processed = []
+        self.chars_bboxs = []
 
         # character size parameters
         self.CHAR_WIDTH_54 = 54 * scale
@@ -28,6 +30,7 @@ class OCR:
         for char_file in (characters_path / Path('54')).iterdir():
             char = cv.imread(str(char_file), cv.IMREAD_GRAYSCALE)
             self.chars_template_54[char_file.stem] = char
+
 
     def detect_characters(self):
 
@@ -50,6 +53,7 @@ class OCR:
         _, img_binary = cv.threshold(img_gray, GRAY_THRESHOLD, 255, cv.THRESH_BINARY)
         img_processed = cv.morphologyEx(img_binary, cv.MORPH_CLOSE, np.ones((3, 3)), iterations=MORPH_CLOSE)
         img_processed = cv.morphologyEx(img_processed, cv.MORPH_OPEN, np.ones((3, 3)), iterations=MORPH_OPEN)
+        self.img_processed = img_processed
 
         # detect characters
         num_labels, labels, stats, _ = cv.connectedComponentsWithStats(cv.bitwise_not(img_processed))
@@ -89,6 +93,7 @@ class OCR:
             labels_cropped = labels_scaled[new_yc - (self.CHAR_HEIGHT//2) : new_yc + (self.CHAR_HEIGHT//2),
                                            new_xc - (char_width//2) : new_xc + (char_width//2)]
             self.chars_imgs.append((labels_cropped != idx).astype(np.uint8) * 255)    
+            self.chars_bboxs.append((xc - (char_width//2)-20, yc - (self.CHAR_HEIGHT//2)-10, char_width+40, self.CHAR_HEIGHT+20))
 
 
     def recognize_characters(self) -> str:
