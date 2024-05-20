@@ -1,31 +1,21 @@
 import cv2 as cv
 import numpy as np
 
+import processing.exceptions as e
 
-# errors
-# 0 contours
-# < 2 hough lines horizontal and vertical --> != 4 cross points
 # no letters recognized
 
 class LicensePlateDetector:
     def __init__(self, image: np.ndarray):
-
-        # license plate size parameters
-        self.LP_SCALE = 4
-        self.LP_HEIGHT = 100 * self.LP_SCALE
-        self.LP_WIDTH = 466 * self.LP_SCALE
-
         self.image = image
-        self.image_height, self.image_width, _ = image.shape
 
         self.white_mask = []
-        self.contours = []
-        self.contour_lines = []
-        self.corners = []
-        self.license_plate_image = []
-    
 
+        self.license_plates = []
+
+    
     def detect_license_plate(self):
+
         # color parameters
         SATURATION_MAX = 50  
         VALUE_MIN = 150
@@ -50,8 +40,8 @@ class LicensePlateDetector:
         hsv_max = np.array([180 , SATURATION_MAX , 255      ])
         self.white_mask = cv.inRange(img_hsv, hsv_min, hsv_max)
 
-        contours_raw, _ = cv.findContours(self.white_mask , cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
-        for contour in contours_raw:
+        contours, _ = cv.findContours(self.white_mask , cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
+        for contour in contours:
 
             # filter by area
             area = cv.contourArea(contour)
@@ -65,7 +55,7 @@ class LicensePlateDetector:
                 else:
                     width, height = h_a, w_a
 
-                if WIDTH_MIN < width < WIDTH_MAX and HEIGHT_MIN< height < HEIGHT_MAX:
+                if WIDTH_MIN < width < WIDTH_MAX and HEIGHT_MIN < height < HEIGHT_MAX:
 
                     # calculate and filter by ratio, extent and solidity
                     ratio = width / height
@@ -75,14 +65,35 @@ class LicensePlateDetector:
                     hull_area = cv.contourArea(contour_hull)
                     solidity = area / hull_area
                     if RATIO_MIN < ratio < RATIO_MAX and EXTENT_MIN < extent and SOLIDITY_MIN < solidity:
-                        self.contours.append(contour_hull)
+                        contour_hull = np.expand_dims(contour_hull, axis=0)
+                        self.license_plates.append(LicensePlate(self.image, contour_hull))
+
+        if not self.license_plates:
+            raise e.NoLicensePlateException()
+
+
+class LicensePlate:
+    def __init__(self, base_image: np.ndarray, contour: np.ndarray):
+        self.base_image = base_image
+        self.base_image_height, self.base_image_width, _ = base_image.shape
+        self.contour = contour
+
+        self.contour_lines = []
+        self.corners = []
+        self.image = []
+
+        # license plate size parameters
+        self.LP_SCALE = 4
+        self.LP_HEIGHT = 100 * self.LP_SCALE
+        self.LP_WIDTH = 466 * self.LP_SCALE
 
 
     def detect_lines(self):
+
         # draw detected contours on empty image and detect lines with Hough transform
-        contours_image = np.zeros_like(self.white_mask)
-        cv.drawContours(contours_image, self.contours, -1, 255, 1)
         HOUGH_THRESHOLD = 100
+        contours_image = np.zeros_like(self.base_image[:, :, 0])
+        cv.drawContours(contours_image, self.contour, 0, 255, 1)
         lines = cv.HoughLines(contours_image, 1, np.pi / 180, HOUGH_THRESHOLD)
     
         # divide lines into vertical and horizontal
@@ -102,10 +113,14 @@ class LicensePlateDetector:
 
             if abs(a) > 1:
                 ver_lines.append(line[0])
-                ver_pts.append(((self.image_height//2) - b) / (-a) )      
+                ver_pts.append(((self.base_image_height//2) - b) / (-a) )      
             else:
                 hor_lines.append(line[0])
-                hor_pts.append(-a * (self.image_width//2) + b)
+                hor_pts.append(-a * (self.base_image_width//2) + b)
+
+        # raise exception if not enough lines detected
+        if len(ver_lines) < 2 or len(hor_lines) < 2:
+            raise e.HoughLinesException(len(ver_lines), len(hor_lines))
 
         ver_pts = np.array(ver_pts).astype(np.float32)
         hor_pts = np.array(hor_pts).astype(np.float32)
@@ -134,6 +149,7 @@ class LicensePlateDetector:
 
 
     def transform_perspective(self):
+
         # obtain cross points of detected lines
         for ver_line in self.contour_lines[:2]:
             for hor_line in self.contour_lines[2:]:
@@ -155,4 +171,4 @@ class LicensePlateDetector:
         img_pts = np.float32([top_left, top_right, bottom_right, bottom_left])
         dst_pts = np.float32([[0, 0],   [self.LP_WIDTH, 0], [self.LP_WIDTH, self.LP_HEIGHT], [0, self.LP_HEIGHT]])
         M = cv.getPerspectiveTransform(img_pts, dst_pts)
-        self.license_plate_image = cv.warpPerspective(self.image, M, (self.LP_WIDTH, self.LP_HEIGHT))
+        self.image = cv.warpPerspective(self.base_image, M, (self.LP_WIDTH, self.LP_HEIGHT))
