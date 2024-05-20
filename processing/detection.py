@@ -3,14 +3,12 @@ import numpy as np
 
 import processing.exceptions as e
 
-# no letters recognized
 
 class LicensePlateDetector:
+
     def __init__(self, image: np.ndarray):
         self.image = image
-
         self.white_mask = []
-
         self.license_plates = []
 
     
@@ -20,7 +18,7 @@ class LicensePlateDetector:
         SATURATION_MAX = 50  
         VALUE_MIN = 150
 
-        # size parameters
+        # license plate size parameters
         AREA_MIN = 500000
         AREA_MAX = 1800000
         WIDTH_MIN = 1400
@@ -73,6 +71,7 @@ class LicensePlateDetector:
 
 
 class LicensePlate:
+    
     def __init__(self, base_image: np.ndarray, contour: np.ndarray):
         self.base_image = base_image
         self.base_image_height, self.base_image_width, _ = base_image.shape
