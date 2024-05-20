@@ -1,5 +1,6 @@
-# python venv
+# python stuff
 .venv/
+__pycache__/
 
 # vscode workspace
 .vscode/
