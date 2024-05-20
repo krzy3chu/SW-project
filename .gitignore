@@ -1,0 +1,8 @@
+# python venv
+.venv/
+
+# vscode workspace
+.vscode/
+
+# data directory
+data/
