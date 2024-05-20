@@ -117,8 +117,6 @@ class OCR:
                     max_prob = max_val
                     max_char = char_template
 
-            if i == self.gap_idx:
-                self.characters.append('-')
             self.characters.append(max_char)
             
         return ''.join(self.characters)
