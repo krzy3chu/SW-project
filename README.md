@@ -1,6 +1,12 @@
 # License plate detection system
 This repository contains an implementation of a license plate character recognition system developed using classical (non-machine learning) image processing techniques. Sample data with photos of license plates can be found below this [link](https://drive.google.com/drive/folders/1dXhLb5PWuLOIMa7_obCwuZajR8Ljx_Wh?usp=sharing).
 
+Project dependencies can be found in file *requirements.txt*. The program must be run with two arguments as in the example below:
+```console
+python3 sw_project.py data/ results.json
+```
+Where *data* is a path to a directory with the sample images and *results.json* is a filename of generated result file.
+
 
 ## Image processing description
 Pipeline of developed system can be divided into 3 parts:
