@@ -5,5 +5,8 @@ __pycache__/
 # vscode workspace
 .vscode/
 
-# data directory
+# samlple data
 data/
+
+# result file
+results.json
